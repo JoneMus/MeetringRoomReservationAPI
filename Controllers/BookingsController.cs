@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MeetingRoomReservationAPI.Models;
 using MeetingRoomReservationAPI.Services;
+using MeetingRoomReservationAPI.Models.DTOs;
 
 namespace MeetingRoomReservationAPI.Controllers
 {
@@ -30,8 +31,16 @@ namespace MeetingRoomReservationAPI.Controllers
 
         // POST: api/bookings
         [HttpPost]
-        public async Task<IActionResult> CreateBooking([FromBody] Booking booking)
+        public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
         {
+            var booking = new Booking
+            {
+                MeetingRoomId = request.MeetingRoomId,
+                StartTime = request.StartTime,
+                EndTime = request.EndTime,
+                ReservedBy = request.ReservedBy
+            };
+            
             var result = await _bookingService.CreateBookingAsync(booking);
 
             if (!result.Success)
