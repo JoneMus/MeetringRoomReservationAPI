@@ -28,6 +28,15 @@ dotnet run --project MeetingRoomReservationAPI
 ```
 4. Avaa selain ja siirry osoitteeseen (portti voi vaihdella): http://localhost:5058/swagger (tai terminaalin ilmoittama osoite).
 
+## Sovelluksen ajaminen Dockerissa
+1. Kloonaa tai lataa projekti koneellesi.
+2. Avaa terminaali projektin juurikansiossa.
+3. Rakenna kontti:
+``docker build -t meeting-room-api .``
+4. Käynnistä kontti:
+``docker run -d -p 8080:8080 --name reservation-api -e ASPNETCORE_ENVIRONMENT=Development meeting-room-api``
+5. Rajapinta saatavissa nyt osoitteesta: http://localhost:8080/swagger
+
 ## Testien ajaminen
 ``dotnet test``
 
