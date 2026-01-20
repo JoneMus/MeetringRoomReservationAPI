@@ -17,8 +17,5 @@ namespace MeetingRoomReservationAPI.Models
 
         // Lisätään varaajan nimi, jotta API on realistisempi
         public string ReservedBy { get; set; } = string.Empty;
-
-        // Navigaatio-ominaisuus takaisin huoneeseen
-        public MeetingRoom? MeetingRoom { get; set; }
     }
 }
