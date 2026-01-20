@@ -1,4 +1,4 @@
-### Meeting Room Reservation API
+# Meeting Room Reservation API
 Tämä on C#-kielellä ja .NET-ympäristössä toteutettu REST-rajapinta kokoushuoneiden varaamiseen.
 
 ## Ominaisuudet
@@ -18,7 +18,7 @@ Tämä on C#-kielellä ja .NET-ympäristössä toteutettu REST-rajapinta kokoush
 - .NET SDK asennettuna
 - Valinnainen: Postman tai vastaava työkalu testaukseen (Swagger on myös käytettävissä).
 
-# Sovelluksen ajaminen
+## Sovelluksen ajaminen
 1. Kloonaa tai lataa projekti koneellesi.
 2. Avaa terminaali projektin juurikansiossa.
 3. Palauta riippuvuudet ja käynnistä sovellus:
@@ -28,7 +28,7 @@ dotnet run --project MeetingRoomReservationAPI
 ```
 4. Avaa selain ja siirry osoitteeseen (portti voi vaihdella): http://localhost:5058/swagger (tai terminaalin ilmoittama osoite).
 
-# Testien ajaminen
+## Testien ajaminen
 ``dotnet test``
 
 ## API-rajapinnan käyttö
