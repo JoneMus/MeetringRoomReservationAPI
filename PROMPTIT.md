@@ -723,3 +723,235 @@ Terminaali näyttää vihreää, jos logiikka pitää ja testit menevät läpi.
 * **Dokumentaatio:** Testit toimivat samalla dokumentaationa sille, miten järjestelmän odotetaan toimivan.
 
 **Projekti on nyt teknisesti valmis ja testattu. Haluatko, että katsomme vielä, miten voisimme toteuttaa DTO-mallit (Data Transfer Objects), jotta emme paljasta tietokantamalleja suoraan APIn kautta?**
+
+
+## Prompti 8
+
+Haluan varmistaa, että varauksen luonnissa booking-objekti sisältää kaiken tarvittavan datan (meetingRoomId, startTime, endTime, reservedBy). Luodaan tätä varten ehto ennen, kun tietokantaan tallennetaan mitään. Voit myös ehdottaa jos tätä varten löytyy parempi ratkaisu.
+
+
+## Vastaus 8
+
+Erinomainen huomio. Validointi on sovelluksen turvallisuuden ja tiedon eheyden kannalta elintärkeää. Senior-kehittäjänä suosittelen tässä kaksiportatista lähestymistapaa: **Data Annotations** (automaattinen tarkistus) ja **Eksplisiittinen tarkistus palvelussa** (varmistus ennen tallennusta).
+
+Tässä on kolme tapaa parantaa tätä, alkaen pyytämästäsi ehdosta.
+
+### 1. Eksplisiittinen tarkistus `BookingService`-luokassa
+
+Tämä on pyytämäsi ehto. Lisätään se `CreateBookingAsync`-metodin alkuun. Se varmistaa, että ID on validi ja merkkijonot eivät ole tyhjiä tai pelkkää välilyöntiä.
+
+Päivitä `Services/BookingService.cs`:
+
+```csharp
+public async Task<(bool Success, string Message, Booking? Booking)> CreateBookingAsync(Booking booking)
+{
+    // UUSI TARKISTUS: Varmistetaan että pakolliset kentät sisältävät dataa
+    if (booking.MeetingRoomId <= 0)
+        return (false, "Virheellinen huone-ID.", null);
+
+    if (string.IsNullOrWhiteSpace(booking.ReservedBy))
+        return (false, "Varaajan nimi on pakollinen tieto.", null);
+
+    if (booking.StartTime == default || booking.EndTime == default)
+        return (false, "Aloitus- ja lopetusaika on annettava.", null);
+
+    // ... (aiemmat säännöt: menneisyys, aikajärjestys, päällekkäisyys)
+    if (booking.StartTime >= booking.EndTime)
+        return (false, "Aloitusajan on oltava ennen lopetusaikaa.", null);
+    
+    // jne...
+}
+
+```
+
+---
+
+### 2. "Parempana ratkaisuna": Data Annotations malleissa
+
+ASP.NET Core tarjoaa sisäänrakennetun tavan validoida dataa ennen kuin se edes saavuttaa kontrolleria. Tämä tapahtuu lisäämällä attribuutteja malliin. Jos data on puutteellista, API palauttaa automaattisesti `400 Bad Request` -vastauksen virheilmoituksineen.
+
+Päivitä `Models/Booking.cs`:
+
+```csharp
+using System.ComponentModel.DataAnnotations;
+
+namespace MeetingRoomBookingApi.Models
+{
+    public class Booking
+    {
+        public int Id { get; set; }
+
+        [Required(ErrorMessage = "Huone-ID on pakollinen.")]
+        [Range(1, int.MaxValue, ErrorMessage = "Valitse voimassa oleva huone.")]
+        public int MeetingRoomId { get; set; }
+        
+        [Required(ErrorMessage = "Aloitusaika on pakollinen.")]
+        public DateTime StartTime { get; set; }
+        
+        [Required(ErrorMessage = "Lopetusaika on pakollinen.")]
+        public DateTime EndTime { get; set; }
+
+        [Required(ErrorMessage = "Varaajan nimi on pakollinen.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Varaajan nimen on oltava 2-100 merkkiä pitkä.")]
+        public string ReservedBy { get; set; } = string.Empty;
+
+        public MeetingRoom? MeetingRoom { get; set; }
+    }
+}
+
+```
+
+---
+
+### 3. Arkkitehtuurinen suositus: DTO (Data Transfer Object)
+
+Oikeissa tuotantoympäristöissä emme yleensä käytä tietokantamallia (`Booking`) suoraan APIn sisääntulona. Syynä on se, että emme halua käyttäjän voivan syöttää esimerkiksi `Id`-kenttää itse (niin sanottu *Over-posting* -haavoittuvuus).
+
+**Suositukseni:** Luodaan `CreateBookingRequest` -luokka.
+
+1. **Luo `Models/DTOs/CreateBookingRequest.cs`:**
+```csharp
+public class CreateBookingRequest
+{
+    [Required]
+    public int MeetingRoomId { get; set; }
+    [Required]
+    public DateTime StartTime { get; set; }
+    [Required]
+    public DateTime EndTime { get; set; }
+    [Required]
+    public string ReservedBy { get; set; } = string.Empty;
+}
+
+```
+
+
+2. **Muuta kontrolleria (`BookingsController.cs`):**
+```csharp
+[HttpPost]
+public async Task<IActionResult> CreateBooking([FromBody] CreateBookingRequest request)
+{
+    // Muunnetaan DTO varsinaiseksi malliksi
+    var booking = new Booking
+    {
+        MeetingRoomId = request.MeetingRoomId,
+        StartTime = request.StartTime,
+        EndTime = request.EndTime,
+        ReservedBy = request.ReservedBy
+    };
+
+    var result = await _bookingService.CreateBookingAsync(booking);
+    // ... loput kuten ennen
+}
+
+```
+
+
+
+---
+
+### Yhteenveto: Mitä teemme?
+
+Ehdotan, että **lisäät kohdan 1 tarkistukset palveluun** (varmuus tallennushetkellä) ja **kohdan 2 attribuutit malliin** (automaattinen palaute käyttäjälle). Näin järjestelmä on "tuplasuojattu".
+
+Nyt kun validointi on kunnossa, oletko valmis siirtymään **yksikkötesteihin**? Voimme lisätä sinne testitapauksen, joka varmistaa, että varaus hylätään, jos varaajan nimi on tyhjä.
+
+
+## Prompti 9
+
+Tällä hetkellä tilanne on se, että käyttäjä voi tehdä varauksen mihin tahansa huoneeseen > 0. Loogista olisi kuitenkin luoda systeemi, missä käyttäjä voi tehdä varauksen vain niihin huoneisiin, jotka löytyvät tietokannasta. Koodissa tietokantaan lisätään 3 huonetta, mutta näitä ei huomioida mitenkään.
+
+## Vastaus 9
+
+Tämä on erinomainen huomio. Senior-kehittäjän termein puhutaan **viite-eheydestä** (referential integrity). Jos sallimme varaukset olemattomiin huoneisiin, tietokantamme korruptoituu "haamuvauksilla", joilla ei ole kotia.
+
+Vaikka oikeat SQL-tietokannat (kuten PostgreSQL) estäisivät tämän automaattisesti *Foreign Key* -rajoitteella, **In-Memory**-tietokanta on tässä suhteessa sallivampi, joten meidän on varmistettava asia koodissa.
+
+### Osa 7: Huoneen olemassaolon varmistaminen
+
+Päivitetään `BookingService.cs` sisältämään tarkistus, joka varmistaa, että `MeetingRoomId` todella löytyy tietokannasta.
+
+#### 1. Päivitä `BookingService.cs`
+
+Lisätään `CreateBookingAsync`-metodiin kysely `MeetingRooms`-tauluun.
+
+```csharp
+public async Task<(bool Success, string Message, Booking? Booking)> CreateBookingAsync(Booking booking)
+{
+    // 1. Tarkistetaan, onko huone olemassa
+    var roomExists = await _context.MeetingRooms.AnyAsync(r => r.Id == booking.MeetingRoomId);
+    if (!roomExists)
+    {
+        return (false, $"Huonetta ID:llä {booking.MeetingRoomId} ei ole olemassa.", null);
+    }
+
+    // 2. Perusvalidointi (aiemmin lisätyt)
+    if (string.IsNullOrWhiteSpace(booking.ReservedBy))
+        return (false, "Varaajan nimi on pakollinen tieto.", null);
+
+    if (booking.StartTime >= booking.EndTime)
+        return (false, "Aloitusajan on oltava ennen lopetusaikaa.", null);
+
+    if (booking.StartTime < DateTime.Now)
+        return (false, "Varausta ei voi tehdä menneisyyteen.", null);
+
+    // 3. Päällekkäisyyksien tarkistus
+    bool isOverlapping = await _context.Bookings.AnyAsync(b =>
+        b.MeetingRoomId == booking.MeetingRoomId &&
+        booking.StartTime < b.EndTime &&
+        booking.EndTime > b.StartTime);
+
+    if (isOverlapping)
+        return (false, "Huone on jo varattu valitulle aikavälille.", null);
+
+    // Kaikki kunnossa -> tallennetaan
+    _context.Bookings.Add(booking);
+    await _context.SaveChangesAsync();
+    
+    return (true, "Varaus luotu onnistuneesti.", booking);
+}
+
+```
+
+---
+
+### Osa 8: Yksikkötestin lisääminen tälle säännölle
+
+Nyt kun olemme lisänneet logiikan, varmistetaan testillä, että se toimii. Lisää tämä testi `BookingServiceTests.cs` -tiedostoon.
+
+```csharp
+[Fact]
+public async Task CreateBookingAsync_ShouldFail_IfRoomDoesNotExist()
+{
+    // Arrange
+    var context = GetDatabaseContext(); // Tyhjä kanta, ei sisällä huoneita
+    var service = new BookingService(context);
+    
+    var bookingToNonExistentRoom = new Booking
+    {
+        MeetingRoomId = 999, // Tätä ID:tä ei ole olemassa
+        StartTime = DateTime.Now.AddDays(1),
+        EndTime = DateTime.Now.AddDays(1).AddHours(1),
+        ReservedBy = "Testaaja"
+    };
+
+    // Act
+    var result = await service.CreateBookingAsync(bookingToNonExistentRoom);
+
+    // Assert
+    Assert.False(result.Success);
+    Assert.Contains("ei ole olemassa", result.Message);
+}
+
+```
+
+---
+
+### Mitä tämä muuttaa käytännössä?
+
+1. **Turvallisuus:** Käyttäjä ei voi enää "saastuttaa" tietokantaa varauksilla, jotka viittaavat olemattomiin huoneisiin.
+2. **Käytettävyys:** API palauttaa nyt selkeän virheilmoituksen: *"Huonetta ID:llä 999 ei ole olemassa"*, sen sijaan että se vain hiljaa hyväksyisi virheellisen datan.
+3. **Tietokantaseeding:** Koska `BookingContextissa` lisäsimme huoneet ID:illä 1, 2 ja 3, voit nyt testata APIa käyttämällä näitä ID-arvoja.
+
+**Nyt meillä on koossa erittäin vankka logiikka. Haluatko vielä, että toteutamme metodin, joka listaa kaikki vapaana olevat huoneet tietyllä aikavälillä, vai alkaako API olla mielestäsi valmis?**
+
