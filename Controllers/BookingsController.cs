@@ -22,8 +22,19 @@ namespace MeetingRoomReservationAPI.Controllers
         {
             if (roomId > 0)
             {
+                var getRoom = await _bookingService.GetMeetingRoomName(roomId);
+                if (!getRoom.Success)
+                {
+                    return BadRequest($"Huonetta ID:llä {roomId} ei ole olemassa.");
+                }
+
                 var bookings = await _bookingService.GetBookingsByRoomAsync(roomId);
-                return Ok(bookings);
+                var response = new CreateBookingResponse
+                {
+                    MeetingRoomName = getRoom.Name,
+                    Bookings = bookings
+                };
+                return Ok(response);
             }
 
             return BadRequest("Room id can't be negative or 0");          

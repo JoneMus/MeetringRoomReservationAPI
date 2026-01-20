@@ -7,5 +7,6 @@ namespace MeetingRoomReservationAPI.Services
         Task<IEnumerable<Booking>> GetBookingsByRoomAsync(int roomId);
         Task<(bool Success, string Message, Booking? Booking)> CreateBookingAsync(Booking booking);
         Task<bool> DeleteBookingAsync(int id);
+        Task<(bool Success, string Name)> GetMeetingRoomName(int roomId);
     }
 }

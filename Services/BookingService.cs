@@ -21,11 +21,26 @@ namespace MeetingRoomReservationAPI.Services
                 .ToListAsync();
         }
 
+        public async Task<(bool Success, string Name)> GetMeetingRoomName(int roomId)
+        {
+            // Tarkistetaan onko huone olemassa
+            if (!await RoomExists(roomId))
+            {
+                return (false, string.Empty);
+            }
+
+            var name = await _context.MeetingRooms
+            .Where(r => r.Id == roomId)
+            .Select(r => r.Name)
+            .FirstOrDefaultAsync();
+
+            return (true ,name ?? "Huone");
+        }
+
         public async Task<(bool Success, string Message, Booking? Booking)> CreateBookingAsync(Booking booking)
         {
             // Tarkistetaan onko huone olemassa
-            var roomExists = await _context.MeetingRooms.AnyAsync(r => r.Id == booking.MeetingRoomId);
-            if (!roomExists)
+            if (!await RoomExists(booking.MeetingRoomId))
             {
                 return (false, $"Huonetta ID:llä {booking.MeetingRoomId} ei ole olemassa.", null);
             }
@@ -65,6 +80,11 @@ namespace MeetingRoomReservationAPI.Services
             _context.Bookings.Remove(booking);
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        private async Task<bool> RoomExists(int roomId)
+        {
+            return await _context.MeetingRooms.AnyAsync(r => r.Id == roomId);
         }
     }
 }
