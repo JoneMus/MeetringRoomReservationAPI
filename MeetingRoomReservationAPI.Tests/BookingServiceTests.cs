@@ -1,3 +1,5 @@
+using System.Data.Common;
+using System.Linq.Expressions;
 using MeetingRoomReservationAPI.Data;
 using MeetingRoomReservationAPI.Models;
 using MeetingRoomReservationAPI.Services;
@@ -71,6 +73,76 @@ namespace MeetingRoomBookingApi.Tests
             // Assert
             Assert.False(result.Success);
             Assert.Contains("menneisyyteen", result.Message);
+        }
+
+        
+        [Fact]
+        public async Task CreateBookingAsync_ShouldFail_IfRoomDoesNotExist()
+        {
+            // Arrange
+            var context = GetDatabaseContext(); // Tyhjä kanta, ei sisällä huoneita
+            var service = new BookingService(context);
+            
+            var bookingToNonExistentRoom = new Booking
+            {
+                MeetingRoomId = 999, // Tätä ID:tä ei ole olemassa
+                StartTime = DateTime.Now.AddDays(1),
+                EndTime = DateTime.Now.AddDays(1).AddHours(1),
+                ReservedBy = "Testaaja"
+            };
+
+            // Act
+            var result = await service.CreateBookingAsync(bookingToNonExistentRoom);
+
+            // Assert
+            Assert.False(result.Success);
+            Assert.Contains("ei ole olemassa", result.Message);
+        }
+
+        [Fact]
+        public async Task GetMeetingRoomNameAsync_ShouldReturnDefault_IfRoomNotFound()
+        {
+            // Arrange
+            var context = GetDatabaseContext();
+            var service = new BookingService(context);
+
+            // Act
+            var result = await service.GetMeetingRoomName(999); // Olematon ID
+
+            // Assert
+            Assert.Equal("", result.Name);
+        }
+
+        [Fact]
+        public async Task GetMeetingRoomNameAsync_ShouldReturnName_IfRoomExists()
+        {
+            // Arrange
+            var context = GetDatabaseContext();
+            var service = new BookingService(context);
+            // Act
+            var result = await service.GetMeetingRoomName(1); // Id 1 = Neukkari havu
+
+            // Assert
+            Assert.Equal("Neukkari Havu", result.Name);
+        }
+
+        [Fact]
+        public async Task DeleteBookingAsync_ShouldReturnTrue_WhenBookingExists()
+        {
+            // Arrange
+            var context = GetDatabaseContext();
+            var service = new BookingService(context);
+            var booking = new Booking { Id = 10, MeetingRoomId = 1, ReservedBy = "Poistettava" };
+            context.Bookings.Add(booking);
+            await context.SaveChangesAsync();
+
+            // Act
+            var result = await service.DeleteBookingAsync(10);
+            var existsAfterDelete = await context.Bookings.AnyAsync(b => b.Id == 10);
+
+            // Assert
+            Assert.True(result);
+            Assert.False(existsAfterDelete);
         }
     }
 }
