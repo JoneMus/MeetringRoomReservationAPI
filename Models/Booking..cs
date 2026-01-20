@@ -15,7 +15,7 @@ namespace MeetingRoomReservationAPI.Models
         [Required]
         public DateTime EndTime { get; set; }
 
-        // Lisätään varaajan nimi, jotta API on realistisempi
+        [Required]
         public string ReservedBy { get; set; } = string.Empty;
     }
 }
