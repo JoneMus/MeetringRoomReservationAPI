@@ -13,6 +13,11 @@ namespace MeetingRoomReservationAPI.Services
             _context = context;
         }
 
+        /// <summary>
+        /// Hakee varaukset huoneen id:llä.
+        /// </summary>
+        /// <param name="roomId"></param>
+        /// <returns></returns>
         public async Task<IEnumerable<Booking>> GetBookingsByRoomAsync(int roomId)
         {
             return await _context.Bookings
@@ -21,6 +26,11 @@ namespace MeetingRoomReservationAPI.Services
                 .ToListAsync();
         }
 
+        /// <summary>
+        /// Hakee huoneen nimen mikäli huone on olemassa.
+        /// </summary>
+        /// <param name="roomId"></param>
+        /// <returns></returns>
         public async Task<(bool Success, string Name)> GetMeetingRoomName(int roomId)
         {
             // Tarkistetaan onko huone olemassa
@@ -37,6 +47,11 @@ namespace MeetingRoomReservationAPI.Services
             return (true ,name ?? "Huone");
         }
 
+        /// <summary>
+        /// Luo varauksen olemassa olevalle huoneelle.
+        /// </summary>
+        /// <param name="booking"></param>
+        /// <returns></returns>
         public async Task<(bool Success, string Message, Booking? Booking)> CreateBookingAsync(Booking booking)
         {
             // Tarkistetaan onko huone olemassa
@@ -72,6 +87,11 @@ namespace MeetingRoomReservationAPI.Services
             return (true, "Varaus luotu onnistuneesti.", booking);
         }
 
+        /// <summary>
+        /// Poistaa varauksen id:llä.
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public async Task<bool> DeleteBookingAsync(int id)
         {
             var booking = await _context.Bookings.FindAsync(id);
@@ -82,6 +102,11 @@ namespace MeetingRoomReservationAPI.Services
             return true;
         }
 
+        /// <summary>
+        /// Palauttaa bool-muuttujan siitä, onko huone olemassa.
+        /// </summary>
+        /// <param name="roomId"></param>
+        /// <returns></returns>
         private async Task<bool> RoomExists(int roomId)
         {
             return await _context.MeetingRooms.AnyAsync(r => r.Id == roomId);
