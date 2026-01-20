@@ -19,8 +19,13 @@ namespace MeetingRoomReservationAPI.Controllers
         [HttpGet("room/{roomId}")]
         public async Task<IActionResult> GetRoomBookings(int roomId)
         {
-            var bookings = await _bookingService.GetBookingsByRoomAsync(roomId);
-            return Ok(bookings);
+            if (roomId > 0)
+            {
+                var bookings = await _bookingService.GetBookingsByRoomAsync(roomId);
+                return Ok(bookings);
+            }
+
+            return BadRequest("Room id can't be negative or 0");          
         }
 
         // POST: api/bookings
