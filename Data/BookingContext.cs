@@ -13,14 +13,14 @@ namespace MeetingRoomReservationAPI.Data
         public DbSet<MeetingRoom> MeetingRooms { get; set; }
         public DbSet<Booking> Bookings { get; set; }
 
-        // protected override void OnModelCreating(ModelBuilder modelBuilder)
-        // {
-        //     // Lisätään muutama testihuone valmiiksi
-        //     modelBuilder.Entity<MeetingRoom>().HasData(
-        //         new MeetingRoom { Id = 1, Name = "Neukkari Havu" },
-        //         new MeetingRoom { Id = 2, Name = "Studio Kivi" },
-        //         new MeetingRoom { Id = 3, Name = "Auditorio Meri" }
-        //     );
-        // }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            // Lisätään muutama testihuone valmiiksi
+            modelBuilder.Entity<MeetingRoom>().HasData(
+                new MeetingRoom { Id = 1, Name = "Neukkari Havu" },
+                new MeetingRoom { Id = 2, Name = "Studio Kivi" },
+                new MeetingRoom { Id = 3, Name = "Auditorio Meri" }
+            );
+        }
     }
 }

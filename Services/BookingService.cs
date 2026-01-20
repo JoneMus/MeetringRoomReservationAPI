@@ -23,6 +23,13 @@ namespace MeetingRoomReservationAPI.Services
 
         public async Task<(bool Success, string Message, Booking? Booking)> CreateBookingAsync(Booking booking)
         {
+            // Tarkistetaan onko huone olemassa
+            var roomExists = await _context.MeetingRooms.AnyAsync(r => r.Id == booking.MeetingRoomId);
+            if (!roomExists)
+            {
+                return (false, $"Huonetta ID:llä {booking.MeetingRoomId} ei ole olemassa.", null);
+            }
+
             // 1. Sääntö: Aloitusaika on ennen lopetusaikaa
             if (booking.StartTime >= booking.EndTime)
                 return (false, "Aloitusajan on oltava ennen lopetusaikaa.", null);
